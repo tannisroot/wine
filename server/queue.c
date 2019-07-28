@@ -1737,8 +1737,7 @@ static int send_hook_ll_message( struct desktop *desktop, struct message *hardwa
     return 1;
 }
 
-int emulate_raw_mouse_move = 1;
-int emulate_raw_mouse_press = 1;
+int emulate_raw_mouse = 1;
 
 /* queue a hardware message for a mouse event */
 static int queue_mouse_message( struct desktop *desktop, user_handle_t win, const hw_input_t *input,
@@ -1805,65 +1804,60 @@ static int queue_mouse_message( struct desktop *desktop, user_handle_t win, cons
         y = desktop->cursor.y;
     }
 
-    if ((device = current->process->rawinput_mouse))
+    device = current->process->rawinput_mouse;
+    if (device && emulate_raw_mouse)
     {
-        if ( (emulate_raw_mouse_press && flags & ~MOUSEEVENTF_MOVE) || (emulate_raw_mouse_move && flags & MOUSEEVENTF_MOVE) )
+        if (!(msg = alloc_hardware_message( input->mouse.info, source, time ))) return 0;
+        msg_data = msg->data;
+
+        msg->win       = device->target;
+        msg->msg       = WM_INPUT;
+        msg->wparam    = RIM_INPUT;
+        msg->lparam    = 0;
+
+        msg_data->flags               = 0;
+        msg_data->rawinput.type       = RIM_TYPEMOUSE;
+        msg_data->rawinput.mouse.x    = x - desktop->cursor.x;
+        msg_data->rawinput.mouse.y    = y - desktop->cursor.y;
+        msg_data->rawinput.mouse.button_flags = 0;
+        msg_data->rawinput.mouse.button_data = 0;
+
+        for (i = 1; i < ARRAY_SIZE(raw_button_flags); ++i)
         {
-            if (!(msg = alloc_hardware_message( input->mouse.info, source, time ))) return 0;
-            msg_data = msg->data;
-
-            msg->win       = device->target;
-            msg->msg       = WM_INPUT;
-            msg->wparam    = RIM_INPUT;
-            msg->lparam    = 0;
-
-            msg_data->flags               = 0;
-            msg_data->rawinput.type       = RIM_TYPEMOUSE;
-            msg_data->rawinput.mouse.x    = emulate_raw_mouse_move ? x - desktop->cursor.x : 0;
-            msg_data->rawinput.mouse.y    = emulate_raw_mouse_move ? y - desktop->cursor.y : 0;
-            msg_data->rawinput.mouse.button_flags = 0;
-            msg_data->rawinput.mouse.button_data = 0;
-
-            if (emulate_raw_mouse_press)
-            {
-                for (i = 1; i < ARRAY_SIZE(raw_button_flags); ++i)
-                {
-                    if (flags & (1 << i))
-                        msg_data->rawinput.mouse.button_flags |= raw_button_flags[i];
-                }
-
-                if (flags & MOUSEEVENTF_WHEEL)
-                {
-                    msg_data->rawinput.mouse.button_flags |= RI_MOUSE_WHEEL;
-                    msg_data->rawinput.mouse.button_data   = input->mouse.data;
-                }
-                if (flags & MOUSEEVENTF_HWHEEL)
-                {
-                    msg_data->rawinput.mouse.button_flags |= RI_MOUSE_HORIZONTAL_WHEEL;
-                    msg_data->rawinput.mouse.button_data   = input->mouse.data;
-                }
-                if (flags & MOUSEEVENTF_XDOWN)
-                {
-                    if (input->mouse.data == XBUTTON1)
-                        msg_data->rawinput.mouse.button_flags |= RI_MOUSE_BUTTON_4_DOWN;
-                    else if (input->mouse.data == XBUTTON2)
-                        msg_data->rawinput.mouse.button_flags |= RI_MOUSE_BUTTON_5_DOWN;
-                }
-                if (flags & MOUSEEVENTF_XUP)
-                {
-                    if (input->mouse.data == XBUTTON1)
-                        msg_data->rawinput.mouse.button_flags |= RI_MOUSE_BUTTON_4_UP;
-                    else if (input->mouse.data == XBUTTON2)
-                        msg_data->rawinput.mouse.button_flags |= RI_MOUSE_BUTTON_5_UP;
-                }
-            }
-
-            queue_hardware_message( desktop, msg, 0 );
+            if (flags & (1 << i))
+                msg_data->rawinput.mouse.button_flags |= raw_button_flags[i];
         }
 
-        if (device->flags & RIDEV_NOLEGACY)
-            return FALSE;
+        if (flags & MOUSEEVENTF_WHEEL)
+        {
+            msg_data->rawinput.mouse.button_flags |= RI_MOUSE_WHEEL;
+            msg_data->rawinput.mouse.button_data   = input->mouse.data;
+        }
+        if (flags & MOUSEEVENTF_HWHEEL)
+        {
+            msg_data->rawinput.mouse.button_flags |= RI_MOUSE_HORIZONTAL_WHEEL;
+            msg_data->rawinput.mouse.button_data   = input->mouse.data;
+        }
+        if (flags & MOUSEEVENTF_XDOWN)
+        {
+            if (input->mouse.data == XBUTTON1)
+                msg_data->rawinput.mouse.button_flags |= RI_MOUSE_BUTTON_4_DOWN;
+            else if (input->mouse.data == XBUTTON2)
+                msg_data->rawinput.mouse.button_flags |= RI_MOUSE_BUTTON_5_DOWN;
+        }
+        if (flags & MOUSEEVENTF_XUP)
+        {
+            if (input->mouse.data == XBUTTON1)
+                msg_data->rawinput.mouse.button_flags |= RI_MOUSE_BUTTON_4_UP;
+            else if (input->mouse.data == XBUTTON2)
+                msg_data->rawinput.mouse.button_flags |= RI_MOUSE_BUTTON_5_UP;
+        }
+
+        queue_hardware_message( desktop, msg, 0 );
     }
+
+    if (device && device->flags & RIDEV_NOLEGACY)
+        return FALSE;
 
     for (i = 0; i < ARRAY_SIZE( messages ); i++)
     {
@@ -2619,10 +2613,7 @@ DECL_HANDLER(send_rawinput_message)
         }
         break;
     case RIM_ENABLE_NATIVE_MOUSE_MOVE:
-        emulate_raw_mouse_move = 0;
-        break;
-    case RIM_ENABLE_NATIVE_MOUSE_PRESS:
-        emulate_raw_mouse_press = 0;
+        emulate_raw_mouse = 0;
         break;
     default:
         set_error( STATUS_INVALID_PARAMETER );

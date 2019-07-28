@@ -282,31 +282,39 @@ struct hw_msg_source
     unsigned int    origin;
 };
 
+typedef union
+{
+    int type;
+    struct
+    {
+        int            type;
+        unsigned int   message;
+        unsigned short vkey;
+        unsigned short scan;
+    } kbd;
+    struct
+    {
+        int            type;
+        int            x;
+        int            y;
+        unsigned short button_flags;
+        unsigned short button_data;
+    } mouse;
+    struct
+    {
+        int type;
+
+    } hid;
+} hw_rawinput_t;
+#define RIM_ENABLE_NATIVE_MOUSE   0x0800
+
 struct hardware_msg_data
 {
     lparam_t             info;
     unsigned int         hw_id;
     unsigned int         flags;
     struct hw_msg_source source;
-    union
-    {
-        int type;
-        struct
-        {
-            int            type;
-            unsigned int   message;
-            unsigned short vkey;
-            unsigned short scan;
-        } kbd;
-        struct
-        {
-            int            type;
-            int            x;
-            int            y;
-            unsigned short button_flags;
-            unsigned short button_data;
-        } mouse;
-    } rawinput;
+    hw_rawinput_t        rawinput;
 };
 
 struct callback_msg_data
@@ -356,29 +364,6 @@ typedef union
 
 #define RIM_ENABLE_NATIVE_MOUSE_MOVE   0x0800
 #define RIM_ENABLE_NATIVE_MOUSE_PRESS  0x1000
-typedef union
-{
-    int type;
-    struct
-    {
-        int type;
-        int x;
-        int y;
-        unsigned short button_flags;
-        unsigned short button_data;
-    } mouse;
-    struct
-    {
-        int type;
-
-    } kbd;
-    struct
-    {
-        int type;
-
-    } hid;
-} hw_rawinput_t;
-
 typedef union
 {
     unsigned char            bytes[1];

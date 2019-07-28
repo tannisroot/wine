@@ -1,4 +1,4 @@
-# Last wine-tkg-staging-esync-faudio-git configuration - Вс июл 28 01:33:03 MSK 2019 :
+# Last wine-tkg-staging-esync-faudio-git configuration - Вс июл 28 03:50:35 MSK 2019 :
 
 Wine (plain) version: 4.12.1.r0.g82543e7858
 Using wine-staging patchset (version 4.12.1.r1.gaccf1895)
@@ -16,6 +16,7 @@ Applied winevulkan 1.1.113 patch
 Applied raw input fix
 Applied large address aware override support
 Applied your own patch /home/alex/git_projects/PKGBUILDS/wine-tkg-git/82c6ec3a32-revert.mypatch
+Applied your own patch /home/alex/git_projects/PKGBUILDS/wine-tkg-git/sims2.mypatch
 Applied your own patch /home/alex/git_projects/PKGBUILDS/wine-tkg-git/wined3d-Correctly-switch-swapchain-buffer.mypatch
 
 Please don't report bugs about this wine build on winehq.org and use https://github.com/Tk-Glitch/PKGBUILDS/issues instead.
