@@ -412,14 +412,6 @@ static int dinput_mouse_hook( LPDIRECTINPUTDEVICE8A iface, WPARAM wparam, LPARAM
                 This->need_warp = TRUE;
         }
 
-        if (raw_input.data.mouse.usButtonFlags & RI_MOUSE_WHEEL)
-        {
-            This->m_state.lZ += (wdata = (SHORT)raw_input.data.mouse.usButtonData);
-            queue_event(iface, DIDFT_MAKEINSTANCE(WINE_MOUSE_Z_AXIS_INSTANCE) | DIDFT_RELAXIS,
-                        wdata, GetCurrentTime(), This->base.dinput->evsequence);
-            ret = This->clipped;
-        }
-
         for (i = 0; i < ARRAY_SIZE(mouse_button_flags); ++i)
         {
             if (raw_input.data.mouse.usButtonFlags & mouse_button_flags[i])
